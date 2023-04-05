@@ -6,6 +6,7 @@ import torch
 
 from toy_scaling.models import get_model
 from toy_scaling.data import get_dataset
+from toy_scaling.utils import set_seeds
 
 
 def parse_args():
@@ -65,13 +66,15 @@ def main():
     args = parse_args()
     
     config = build_config(args.config)
-    device = config.train.device # "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = config.train.device
+    np_rng = set_seeds(config.train.seed)
 
     train_dataloader, test_dataloader = get_dataset(
         config,    
+        np_rng=np_rng, 
     )
 
-    model = get_model().to(device)
+    model = get_model(config).to(device)
 
     optim = torch.optim.AdamW(
         model.parameters(),
