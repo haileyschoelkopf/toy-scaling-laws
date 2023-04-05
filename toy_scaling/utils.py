@@ -7,7 +7,7 @@ import random
 
 def set_seeds(seed):
     torch.manual_seed(seed)
-    np.random.seed(seed) # TODO: is there a better way to set numpy seed? create np_rng here?
+    np_rng = np.random.default_rng(seed)
     random.seed(seed)
 
-
+    return np_rng
