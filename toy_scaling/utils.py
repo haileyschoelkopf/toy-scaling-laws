@@ -11,5 +11,3 @@ def set_seeds(seed):
     random.seed(seed)
 
     return np_rng
-
-
