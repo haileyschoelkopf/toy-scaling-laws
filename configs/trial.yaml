@@ -13,10 +13,16 @@ optim:
 
 data: 
   task: sparse_parity
+  task_params:
+    n_tasks: 4
+    k: 5
+    n: 40
   
 train:
   seed: 42
   device: "cuda:0"
+  batch_size: 64
+  train_frac: 0.6
   train_iters: 500
   eval_iters: 50
   eval_every: 50

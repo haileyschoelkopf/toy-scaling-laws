@@ -8,7 +8,7 @@ setup(
     py_modules=["toy_scaling"],
     version="0.0.1",
     description="",
-    author="",
+    author="Hailey Schoelkopf and Zhangir Azerbayev",
     packages=find_packages(),
     install_requires=[
         str(r)
