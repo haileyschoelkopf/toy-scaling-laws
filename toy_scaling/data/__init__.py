@@ -8,7 +8,6 @@ from .wikitext import WikitextDataset
 DATASET_REGISTRY = {
     "sparse_parity": SparseParityDataset,
     "wikitext": WikitextDataset,
-    # define new task class datasets here
 }
 
 
