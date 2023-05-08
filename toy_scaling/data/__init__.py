@@ -3,10 +3,11 @@ import torch
 import math
 
 from .sparse_parity import SparseParityDataset
+from .wikitext import WikitextDataset
 
 DATASET_REGISTRY = {
     "sparse_parity": SparseParityDataset,
-    # define new task class datasets here
+    "wikitext": WikitextDataset,
 }
 
 
