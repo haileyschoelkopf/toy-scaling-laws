@@ -75,8 +75,11 @@ class SparseParityDataset(torch.utils.data.Dataset):
 
             label = bitsum % 2
 
+            # don't feed in the "indicator" bit if we have one task only
+            bitstring = np.concatenate([ctrl_bits, task_bits]) if n_tasks > 1 else task_bits
+
             sample = {
-                "inputs": torch.Tensor(np.concatenate([ctrl_bits, task_bits])),
+                "inputs": torch.Tensor(bitstring),
                 "labels": torch.Tensor([label]),
                 "ctrl_bits": torch.Tensor(ctrl_bits),
                 "task_bits": torch.Tensor(task_bits),
