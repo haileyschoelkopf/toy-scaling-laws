@@ -2,22 +2,17 @@ import argparse
 from omegaconf import OmegaConf
 from tqdm import tqdm
 from dataclasses import dataclass
+import os
+import wandb
 
 import torch
 
 from transformer_lens import HookedTransformer
 
 from toy_scaling.data import get_dataset
-from toy_scaling.utils import set_seeds
-from toy_scaling.train import TrainingConfig
+from toy_scaling.train.utils import set_seeds
+from toy_scaling.scheduler import TransformerScalingScheduler, TrainingConfig
 
-
-@dataclass
-class TrainingConfig:
-    batch_size: int = 128, 
-    lr_scheduler: callable = lambda t: 1.0
-    num_steps: int 
-    optimizer: str = "AdamW"
 
 def train_loop(
         model: HookedTransformer, 
@@ -26,27 +21,69 @@ def train_loop(
         train_dataloader: torch.utils.data.DataLoader, 
         test_dataloader: torch.utils.data.DataLoader,
 ):
+    train_dataloader = iter(train_dataloader)
+    test_dataloader = iter(test_dataloader)
 
-    cfg = cfg.train
+    cfg = config.train
 
-    for iteration in tqdm.tqdm(cfg.train_iters):
+    for iteration in tqdm(range(1, cfg.train_iters + 1)):
 
         # run fwd on a data batch here (should we do full-batch training?)
+        batch = next(train_dataloader)["inputs"].to("cuda")
+        logits = model(batch)
+        loss = model.loss_fn(logits, batch)
 
-        # loss.backward()
+        loss.backward()
 
         optim.step()
         optim.zero_grad()
 
+        wandb.log({'train/loss': loss, 'train/ppl': torch.exp(loss)}, step=iteration)
+        wandb.log(
+            {'train-tokens/loss': loss, 'train-tokens/ppl': torch.exp(loss)}, 
+            step=iteration * config.data.task_params.n_ctx * cfg.batch_size
+        )
+        del batch
+
         if iteration % cfg.eval_every == 0:
             # run test loop
-            for test_iter in range(cfg.eval_iters):
-                # get test loss on a batch
-                pass
+            sum_loss = 0
+            with torch.no_grad():
+                model.eval()
+                for test_iter in range(cfg.eval_iters):
+                    # get test loss on a batch
+                    test_batch = next(test_dataloader)["inputs"].to("cuda")
+                    logits = model(test_batch)
+                    test_loss = model.loss_fn(logits, test_batch)
+                    # print("test loss:", test_loss)
+                    # log the loss and ppl?
+
+                    sum_loss += test_loss.item()
+                
+                wandb.log({
+                    'test/avg_loss': sum_loss / cfg.eval_iters, 
+                    'test/avg_ppl': torch.exp((torch.Tensor([sum_loss]) / cfg.eval_iters))
+                }, step=iteration)
+                # also create plots with tokens processed on y axis
+                wandb.log({
+                    'test-tokens/avg_loss': sum_loss / cfg.eval_iters, 
+                    'test-tokens/avg_ppl': torch.exp((torch.Tensor([sum_loss]) / cfg.eval_iters))
+                }, step=iteration * config.data.task_params.n_ctx * cfg.batch_size)
             
             # log avg test loss to wandb 
+            # wandb.log({'avg_test_loss': test_loss / cfg.eval_iters})
             # TODO: should we run 1 epoch on test data each eval loop?
 
         if iteration % cfg.save_every == 0:
             # save a checkpoint (and metadata + config?)
-            pass
+            
+            save_dir = "./" + config.checkpointing.dir + "/" + config.wandb.name + "/" + f"step{iteration}"
+            os.makedirs(save_dir, exist_ok=True)
+
+            torch.save({
+                "model": model.state_dict(),
+                "config": config,
+            },
+            save_dir + "/model.pt"
+            )
+            # TODO: copy config file to directory?

@@ -1,11 +1,17 @@
 import argparse 
 from omegaconf import OmegaConf
 from tqdm import tqdm
+import wandb
+
+import torch
 
 from transformer_lens import HookedTransformer
 
-from toy_scaling.models import get_transformer_config
-from toy_scaling.models import 
+# from toy_scaling.models import get_transformer_config
+from toy_scaling.train.utils import set_seeds 
+from toy_scaling.train import train_loop
+from toy_scaling.data import get_dataset
+from toy_scaling.scheduler import TransformerScalingScheduler
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -38,9 +44,21 @@ def main():
         config,    
         np_rng=np_rng, 
     )
-    
-    model_config = get_transformer_config(config.k)
-    model = 
+
+    scale_scheduler = TransformerScalingScheduler()
+    model_config, train_config = scale_scheduler.get_hparams(
+            k=1, 
+            tokens=10**6, 
+            n_ctx=32,
+            batch_size=config.train.batch_size,
+            d_vocab=-1, 
+            tokenizer_name="gpt2",
+            seed=37,
+    )
+    print(model_config, train_config)
+    # model_config = get_transformer_config(config.k)
+    model = HookedTransformer(cfg=model_config)
+    print(model)
 
     optim = torch.optim.AdamW(
         model.parameters(),
@@ -50,7 +68,13 @@ def main():
     )
 
     # TODO: add wandb logging
-
+    run = wandb.init(
+        project=config.wandb.project,
+        entity=config.wandb.entity,
+        name=config.wandb.name,
+        group=config.wandb.group,
+        config=config,
+        )
     train_loop(
         model,
         optim,

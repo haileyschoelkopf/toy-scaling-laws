@@ -1,10 +1,18 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 import math
 
 from transformer_lens.HookedTransformerConfig import HookedTransformerConfig
 
-from toy_scaling.train import TrainingConfig
+
+@dataclass
+class TrainingConfig:
+    batch_size: int = 128, 
+    lr_scheduler: callable = lambda t: 1.0
+    num_steps: int = 1000
+    optimizer: str = "AdamW"
+
 
 class ScalingScheduler(ABC): 
     """
@@ -27,12 +35,12 @@ class TransformerScalingScheduler(ScalingScheduler):
     def __init__(self): 
         pass 
 
-    def _get_transformer_hparams(k: int):
+    def _get_transformer_hparams(self, k: int):
         assert k >= 1
 
         arch_params = dict()
 
-        arch_params["n_ctx"] = 32
+        arch_params["n_ctx"] = 512
 
         arch_params["d_model"] = 64 + 32 * (k // 2)
         arch_params["n_layers"] = 1 + 2 * (k - 1)
@@ -46,7 +54,7 @@ class TransformerScalingScheduler(ScalingScheduler):
 
         return arch_params
 
-    def _get_train_hparams(tokens: int, n_ctx: int): 
+    def _get_train_hparams(self, tokens: int, n_ctx: int, batch_size: int): 
         """
         [1] shows that while large batch sizes may be a problem, we should be able to 
         get away with small ones. I also want to see if we can get away with *not* 
@@ -63,11 +71,14 @@ class TransformerScalingScheduler(ScalingScheduler):
         }
 
     def get_hparams(
+            self,
             k: int, 
             tokens: int, 
+            n_ctx: int,
+            batch_size: int,
             d_vocab: int, 
             tokenizer_name: str, 
-            seed: int
+            seed: int,
     ): 
         arch_params = self._get_transformer_hparams(k)
 
@@ -88,7 +99,7 @@ class TransformerScalingScheduler(ScalingScheduler):
             parallel_attn_mlp=False,
         )
 
-        train_config = TrainingConfig(**self._get_train_hparams(tokens, n_ctx))
+        train_config = TrainingConfig(**self._get_train_hparams(tokens, n_ctx, batch_size))
 
         return model_config, train_config
 
