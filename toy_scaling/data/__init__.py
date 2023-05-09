@@ -20,12 +20,17 @@ def get_dataset(
     task_cfg = config.data
 
 
-    assert (cfg.train_frac < 1.0 and cfg.train_frac > 0.0), \
-        f"train_frac must be a decimal percentage (between 0.0 and 1.0 exclusive) but received {cfg.train_frac}"
-    # calculate total samples to generate:  
-    # n_samples consumed by train loop * (1 / train_frac) --> after train-test split, get slightly more than the desired
+    # calculate total samples to generate: 
+    use_train_frac = False
+    if (cfg.train_frac < 1.0 and cfg.train_frac > 0.0):
+        # we are dividing data based on train % and valid %
+         # n_samples consumed by train loop * (1 / train_frac) --> after train-test split, get slightly more than the desired
+        n_samples = math.ceil(cfg.train_iters * cfg.batch_size * (1.0 / cfg.train_frac))
+        use_train_frac = True
+    else:
+        n_samples = cfg.train_iters * cfg.batch_size
     # train samples. 1.005 factor to avoid running out of genned samples / avoiding rounding error.
-    n_samples = math.ceil(cfg.train_iters * cfg.batch_size * (1.0 / cfg.train_frac) * 1.005)
+    n_samples = math.ceil(n_samples * 1.005)
 
 
     # offload to task-specific dataset to construct samples
@@ -33,10 +38,19 @@ def get_dataset(
         config,
         n_samples,
         np_rng=np_rng,
+        split="train"
     )
 
-    # TODO: best practices for using np rng
-    train_data, test_data, np_rng = train_test_split(dataset, cfg.train_frac, np_rng)
+    if use_train_frac: 
+        train_data, test_data, np_rng = train_test_split(dataset, cfg.train_frac, np_rng)
+    else:
+        train_data = dataset
+        test_data = DATASET_REGISTRY[task_cfg.task](
+            config,
+            math.ceil((cfg.eval_iters * cfg.batch_size * (cfg.train_iters // cfg.eval_every)) * 1.005),
+            np_rng=np_rng,
+            split="validation"
+        )
 
     train_dataloader = torch.utils.data.DataLoader(train_data, cfg.batch_size, shuffle=True)
     test_dataloader = torch.utils.data.DataLoader(test_data, cfg.batch_size, shuffle=True)

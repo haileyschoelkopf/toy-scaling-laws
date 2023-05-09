@@ -22,6 +22,7 @@ class SparseParityDataset(torch.utils.data.Dataset):
         config, 
         n_samples,
         np_rng,
+        **kwargs
     ):
 
         self.config = config

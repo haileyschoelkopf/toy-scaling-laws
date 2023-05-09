@@ -106,7 +106,6 @@ class WikitextDataset(torch.utils.data.Dataset):
         # gen samples. 
         # TODO: add a name to progress bar
         buffer = torch.empty((0,))
-        print(buffer)
         for i in tqdm(range(self.n_samples)):
             
             while buffer.shape[0] < n_ctx:
@@ -128,7 +127,7 @@ class WikitextDataset(torch.utils.data.Dataset):
             # print(tokens.shape, buffer.shape)
             sample = {
                 # right-shift outputs
-                "inputs": tokens[:-1],
-                "labels": tokens[1:],
+                "inputs": tokens[:-1].long(),
+                "labels": tokens[1:].long(),
             }
             self.samples.append(sample)
