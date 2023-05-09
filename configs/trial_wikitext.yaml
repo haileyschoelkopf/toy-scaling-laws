@@ -22,12 +22,17 @@ train:
   batch_size: 8
   train_iters: 500
   train_frac: -1
+  batch_size: 64
+  train_frac: 0.6
+  train_iters: 500
   eval_iters: 50
   eval_every: 50
   save_every: 50
 
+
 checkpointing:
   dir: "run-1"
+
 
 
 wandb:
