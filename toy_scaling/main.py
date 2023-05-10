@@ -47,12 +47,12 @@ def main():
 
     scale_scheduler = TransformerScalingScheduler()
     model_config, train_config = scale_scheduler.get_hparams(
-            k=1, 
+            k=config.train.k, 
             tokens=10**6, 
             n_ctx=32,
             batch_size=config.train.batch_size,
-            d_vocab=-1, 
-            tokenizer_name="gpt2",
+            d_vocab=2, 
+            tokenizer_name=None,
             seed=37,
     )
     print(model_config, train_config)

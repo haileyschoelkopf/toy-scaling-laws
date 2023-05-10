@@ -29,9 +29,20 @@ def train_loop(
     for iteration in tqdm(range(1, cfg.train_iters + 1)):
 
         # run fwd on a data batch here (should we do full-batch training?)
-        batch = next(train_dataloader)["inputs"].to("cuda")
-        logits = model(batch)
-        loss = model.loss_fn(logits, batch)
+        if config.data.task == "wikitext":
+            batch = next(train_dataloader)["inputs"].to("cuda")
+
+            logits = model(batch)
+            loss = model.loss_fn(logits, batch)
+        elif config.data.task == "sparse_parity":
+            batch = next(train_dataloader)
+
+            logits = model(batch["inputs"].to("cuda"))
+            # print(logits[:,-1,:].shape)
+            loss_fn = torch.nn.CrossEntropyLoss()
+            # print(batch["labels"].squeeze().shape)
+            loss = loss_fn(logits[:,-1,:], batch["labels"].squeeze().to("cuda"))
+            print(loss)
 
         loss.backward()
 
@@ -69,10 +80,6 @@ def train_loop(
                     'test-tokens/avg_loss': sum_loss / cfg.eval_iters, 
                     'test-tokens/avg_ppl': torch.exp((torch.Tensor([sum_loss]) / cfg.eval_iters))
                 }, step=iteration * config.data.task_params.n_ctx * cfg.batch_size)
-            
-            # log avg test loss to wandb 
-            # wandb.log({'avg_test_loss': test_loss / cfg.eval_iters})
-            # TODO: should we run 1 epoch on test data each eval loop?
 
         if iteration % cfg.save_every == 0:
             # save a checkpoint (and metadata + config?)

@@ -80,11 +80,11 @@ class SparseParityDataset(torch.utils.data.Dataset):
             bitstring = np.concatenate([ctrl_bits, task_bits]) if n_tasks > 1 else task_bits
 
             sample = {
-                "inputs": torch.Tensor(bitstring),
-                "labels": torch.Tensor([label]),
-                "ctrl_bits": torch.Tensor(ctrl_bits),
-                "task_bits": torch.Tensor(task_bits),
-                "active_task": torch.Tensor([active_task]),
-                "active_indices": torch.Tensor(self.active_indices[active_task]) 
+                "inputs": torch.Tensor(bitstring).long(),
+                "labels": torch.Tensor([label]).long(),
+                "ctrl_bits": torch.Tensor(ctrl_bits).long(),
+                "task_bits": torch.Tensor(task_bits).long(),
+                "active_task": torch.Tensor([active_task]).long(),
+                "active_indices": torch.Tensor(self.active_indices[active_task]).long() 
             }
             self.samples.append(sample)
