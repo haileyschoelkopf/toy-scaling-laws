@@ -30,6 +30,7 @@ def build_config(config):
     cli = OmegaConf.from_cli() # load overrides from command line
 
     merge = OmegaConf.merge(cfg, cli)
+    merge.train.k = int(merge.train.k)
     # TODO: make sure this merged config is saved alongside each saved checkpoint!
     return merge
 
@@ -47,7 +48,7 @@ def main():
 
     scale_scheduler = TransformerScalingScheduler()
     model_config, train_config = scale_scheduler.get_hparams(
-            k=1, 
+            k=config.train.k, 
             tokens=10**6, 
             n_ctx=32,
             batch_size=config.train.batch_size,
