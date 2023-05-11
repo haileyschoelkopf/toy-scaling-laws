@@ -104,18 +104,19 @@ class TransformerScalingScheduler(ScalingScheduler):
         return model_config, train_config
 
 def main():
-    for k in range(1, 30):
+    for k in range(1, 11):
         scale_scheduler = TransformerScalingScheduler()
         model_config, train_config = scale_scheduler.get_hparams(
                 k=k, 
                 tokens=10**6, 
-                d_vocab=6, 
+                d_vocab=50257, 
                 tokenizer_name="gpt2",
                 seed=37,
+                n_ctx=512, 
+                batch_size=8
         )
-
-        print(model_config)
-        print(train_config)
+        print(k)
+        print(model_config.n_params)
 
 
 if __name__ == "__main__":
